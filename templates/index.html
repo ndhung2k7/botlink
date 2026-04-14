@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Shortener Chat Bot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-wrapper">
+        <div class="chat-container">
+            <!-- Header -->
+            <div class="chat-header">
+                <div class="bot-info">
+                    <div class="bot-avatar">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <div class="bot-details">
+                        <h2>Link Shortener Bot</h2>
+                        <span class="status online">Đang hoạt động</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="clear-chat" title="Xóa lịch sử chat">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <button class="theme-toggle" title="Đổi theme">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Messages Area -->
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-wrapper">
+                        <div class="message-content">
+                            <p>👋 Xin chào! Tôi là <strong>Link Shortener Bot</strong>.</p>
+                            <p>📌 <strong>Cách sử dụng:</strong></p>
+                            <p>1️⃣ Gửi link và tin nhắn (tùy chọn)<br>
+                            2️⃣ Tôi sẽ tạo note trên anotepad.com<br>
+                            3️⃣ Rút gọn link qua 3 dịch vụ khác nhau</p>
+                            <p>💡 <strong>Ví dụ:</strong><br>
+                            <code>https://github.com/username/repo Đây là dự án của tôi</code></p>
+                            <p>✨ Hãy thử gửi một link ngay bây giờ!</p>
+                        </div>
+                        <div class="message-time">Vừa xong</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+                <div class="message bot-message">
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-wrapper">
+                        <div class="message-content">
+                            <div class="typing-indicator">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <div class="input-container">
+                    <button class="attach-btn" title="Thêm file" disabled>
+                        <i class="fas fa-paperclip"></i>
+                    </button>
+                    <textarea 
+                        id="messageInput" 
+                        placeholder="Nhập link và tin nhắn của bạn..." 
+                        rows="1"
+                        maxlength="500"
+                    ></textarea>
+                    <button class="send-btn" id="sendBtn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="input-footer">
+                    <span class="char-count"><span id="charCount">0</span>/500 ký tự</span>
+                    <span class="hint">↵ Enter để gửi • Shift + ↵ xuống dòng</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMessage">Đã copy vào clipboard!</span>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
