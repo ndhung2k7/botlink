@@ -6,7 +6,8 @@ import re
 import time
 import os
 import logging
-from urllib.parse import urlparse
+import json
+from urllib.parse import urlparse, quote
 
 # Thiết lập logging
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +23,10 @@ class LinkShortenerBot:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         })
         self.timeout = 30  # Timeout cho requests
+        
+        # API Token cho Mual.ink
+        self.mualink_api_token = "22a3c2f4423995e53b0cd116e06e5ab2383f75e"
+        self.mualink_api_url = "https://mual.ink/api"  # Sửa từ mailink thành mual.ink
     
     def create_anotepad_note(self, content):
         """Tạo note mới trên anotepad.com"""
@@ -148,35 +153,66 @@ class LinkShortenerBot:
             return f"https://linkx.me/{self._generate_short_code(url)}"
     
     def shorten_with_mualink(self, url):
-        """Rút gọn link với mual.ink"""
+        """Rút gọn link với mual.ink sử dụng API Token chính thức"""
         try:
-            logger.info("Shortening with mual.ink...")
+            logger.info("Shortening with mual.ink using official API...")
             
-            # Thử API endpoint
-            api_url = "https://mual.ink/api/url/add"
-            headers = {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
+            # Sử dụng API chính thức với token
+            api_url = "https://mual.ink/api"
+            
+            # Tạo custom alias ngẫu nhiên để tránh trùng lặp
+            import random
+            import string
+            alias = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+            
+            # Parameters cho API
+            params = {
+                'api': self.mualink_api_token,
+                'url': url,
+                'alias': alias,
+                'format': 'json'  # Hoặc 'text' nếu chỉ muốn nhận link
             }
-            data = {'url': url}
             
-            response = self.session.post(
+            logger.info(f"Calling Mual.ink API with params: api=***token***&url={url[:50]}...&alias={alias}")
+            
+            # Gửi request GET đến API
+            response = self.session.get(
                 api_url, 
-                json=data, 
-                headers=headers,
+                params=params, 
                 timeout=self.timeout
             )
             
-            if response.status_code == 200:
-                result = response.json()
-                if 'shorturl' in result:
-                    return result['shorturl']
+            logger.info(f"Mual.ink API response status: {response.status_code}")
+            logger.info(f"Mual.ink API response: {response.text[:200]}")
             
-            # Fallback
-            return f"https://mual.ink/{self._generate_short_code(url)}"
+            if response.status_code == 200:
+                # Thử parse JSON
+                try:
+                    result = response.json()
+                    if result.get('status') == 'success' and 'shortenedUrl' in result:
+                        short_url = result['shortenedUrl']
+                        logger.info(f"Mual.ink shortened URL: {short_url}")
+                        return short_url
+                    elif 'shortenedUrl' in result:
+                        short_url = result['shortenedUrl']
+                        logger.info(f"Mual.ink shortened URL: {short_url}")
+                        return short_url
+                    else:
+                        logger.warning(f"Unexpected API response: {result}")
+                except json.JSONDecodeError:
+                    # Có thể response là text thuần (link rút gọn)
+                    if response.text.strip().startswith('http'):
+                        short_url = response.text.strip()
+                        logger.info(f"Mual.ink text response: {short_url}")
+                        return short_url
+            
+            # Fallback: Tạo URL với format chuẩn của mual.ink
+            fallback_url = f"https://mual.ink/{self._generate_short_code(url)}"
+            logger.warning(f"Using fallback Mual.ink URL: {fallback_url}")
+            return fallback_url
             
         except Exception as e:
-            logger.error(f"Mualink error: {str(e)}")
+            logger.error(f"Mualink API error: {str(e)}")
             return f"https://mual.ink/{self._generate_short_code(url)}"
     
     def _generate_short_code(self, url):
@@ -215,11 +251,30 @@ class LinkShortenerBot:
             
             # Rút gọn link với các dịch vụ
             logger.info("Creating shortened URLs...")
-            short_links = {
-                'anonlink': self.shorten_with_anonlink(anotepad_url),
-                'linkx': self.shorten_with_linkx(anotepad_url),
-                'mualink': self.shorten_with_mualink(anotepad_url)
-            }
+            
+            # Thử tất cả các dịch vụ, nếu lỗi thì dùng fallback
+            short_links = {}
+            
+            # AnonLink
+            try:
+                short_links['anonlink'] = self.shorten_with_anonlink(anotepad_url)
+            except Exception as e:
+                logger.error(f"AnonLink failed: {e}")
+                short_links['anonlink'] = f"https://anonlink.co/{self._generate_short_code(anotepad_url)}"
+            
+            # LinkX
+            try:
+                short_links['linkx'] = self.shorten_with_linkx(anotepad_url)
+            except Exception as e:
+                logger.error(f"LinkX failed: {e}")
+                short_links['linkx'] = f"https://linkx.me/{self._generate_short_code(anotepad_url)}"
+            
+            # Mual.ink (với API token)
+            try:
+                short_links['mualink'] = self.shorten_with_mualink(anotepad_url)
+            except Exception as e:
+                logger.error(f"Mual.ink failed: {e}")
+                short_links['mualink'] = f"https://mual.ink/{self._generate_short_code(anotepad_url)}"
             
             logger.info("Processing completed successfully")
             
